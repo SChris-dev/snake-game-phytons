@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Application</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Game container -->
+    <div class="game-container">
+
+        <!-- Menu -->
+        <div id="mainMenu" style="display: flex;">
+            <h1>PHYTONS</h1>
+            <div class="settings">
+                <input type="text" placeholder="Enter name" id="playerName">
+                <div style="display: flex; justify-content: center; gap: 10px;">
+                    <input type="checkbox" id="hardMode"><label> HARDMODE</label>
+                </div>
+            </div>
+            <button class="game-button" id="startBtn">Start Game</button>
+            <button class="game-button" id="leaderboardBtn">Leaderboard</button>
+        </div>
+
+        <!-- The Game -->
+         <div id="theGame" style="display: none;">
+            <div class="items">
+                <p>Score: <span id="playerScore">0</span></p>
+                <h2>PHYTONS</h2>
+                <p>Time: <span id="totalTime">0:00:00</span></p>
+            </div>
+            <canvas width="960" height="600" style="border: 1px solid #46A5E0;"></canvas>
+            <div class="canvas-button">
+                <button class="game-button" id="rewindBtn">Rewind</button>
+            </div>
+         </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

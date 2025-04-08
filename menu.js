@@ -24,7 +24,7 @@ function validateInput() {
 
 usernameInput.addEventListener('input', validateInput);
 
-// validateInput();
+validateInput();
 
 startBtn.addEventListener('click', () => {
     menuContainer.style.display = 'none';

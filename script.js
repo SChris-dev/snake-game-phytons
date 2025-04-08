@@ -1,254 +1,392 @@
-// menu
-const mainMenu = document.querySelector('#mainMenu');
-const theGame = document.querySelector('#theGame');
+// canvas
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
 
-// input elements
-const playerInput = document.querySelector('#playerName');
-const hardMode = document.querySelector('#hardMode');
+canvas.width = 960;
+canvas.height = 600;
 
-// buttons
-const startBtn = document.querySelector('#startBtn');
-const leaderboardBtn = document.querySelector('#leaderboardBtn');
-const rewindBtn = document.querySelector('#rewindBtn');
+// game
 
-// start button state
-startBtn.disabled = true;
+// scoring and timer
+let score = 6;
+let timer = 0;
+let timerInterval;
 
-// force the user to fill the name input before playing
-playerInput.addEventListener('input', () => {
-    const playerName = playerInput.value.trim();
-    if (playerName) {
-        startBtn.disabled = false;
-    }
-    else {
-        startBtn.disabled = true;
-    }
-})
+function startTimer() {
+    timerInterval = setInterval(() => {
+        timer++;
 
-// hardmode check
-hardMode.addEventListener('change', () => {
-    console.log(`Hard Mode is ${hardMode.checked ? 'ON' : 'OFF'}`);
-})
+        const hours = String(Math.floor(timer / 3600)).padStart(1, '0');
+        const minutes = String(Math.floor((timer % 3600) / 60)).padStart(2, '0');
+        const seconds = String(timer % 60).padStart(2, '0');
 
-// start game button
-startBtn.addEventListener('click', () => {
-    mainMenu.style.display = 'none';
-    theGame.style.display = 'flex';
-    gameStart();
-})
+        timerText.innerHTML = `${hours}:${minutes}:${seconds}`;
+    }, 1000);
+}
 
-leaderboardBtn.addEventListener('click', () => {
-    alert('Coming soon!');
-})
+function updateTimerDisplay() {
+    const hours = String(Math.floor(timer / 3600));
+    const minutes = String(Math.floor((timer % 3600) / 60)).padStart(2, '0');
+    const seconds = String(timer % 60).padStart(2, '0');
+    timerText.innerHTML = `${hours}:${minutes}:${seconds}`;
+}
 
+// grid
+const rows = 30;
+const cols = 48;
+const cellSize = canvas.width / cols;
 
-
-// game canvas
-const myCanvas = document.querySelector('canvas');
-const ctx = myCanvas.getContext('2d');
-
-// grid settings
-const gridW = 48;
-const gridH = 30;
-const gridCell = 20;
-
-// drawing grid
-function drawGrid() {
-    for (let x = 0; x <= gridW; x++) {
-        for (let y = 0; y <= gridH; y++) {
-            // for checkered styling
-            const isEven = (x + y) % 2 === 0;
-            // conditional checking for color
-            ctx.fillStyle = isEven ? '#214D66' : '#1E3849';
-            ctx.fillRect(x * gridCell,  y * gridCell, gridCell, gridCell);
+function createGrid() {
+    for (let row = 0; row < rows; row++) {
+        for (let col = 0; col < cols; col++) {
+            ctx.fillStyle = (row + col) % 2 === 0 ? '#00278a' : '#001b5f';
+            ctx.fillRect(col * cellSize, row * cellSize, cellSize, cellSize);
         }
+    }
+};
+
+// snake
+
+let startX = Math.floor(cols / 2);
+let startY = Math.floor(rows / 2);
+
+const snake = [
+    {
+        x: startX,
+        y: startY
+    },
+    {
+        x: startX - 1,
+        y: startY,
+    },
+    {
+        x: startX - 2,
+        y: startY
+    },
+    {
+        x: startX - 3,
+        y: startY,
+    },
+    {
+        x: startX - 4,
+        y: startY
+    },
+    {
+        x: startX - 5,
+        y: startY,
+    },
+    {
+        x: startX - 6,
+        y: startY
+    }
+]
+
+// snake directions
+
+let direction = 'right';
+
+function moveSnake() {
+    const head = { ...snake[0] };
+
+    if (direction === 'right') head.x++;
+    else if (direction === 'left') head.x--;
+    else if (direction === 'up') head.y--;
+    else if (direction === 'down') head.y++;
+
+    head.x = (head.x + cols) % cols;
+    head.y = (head.y + rows) % rows;
+
+    snake.unshift(head);
+
+    if (!checkPelletCollision()) {
+        snake.pop();
     }
 }
 
-// rewind button
-rewindBtn.addEventListener('click', () => {
-    console.log('Click!')
+document.addEventListener('keydown', (e) => {
+    const keyname = e.key;
+
+    if ((keyname === 'w' || keyname === 'ArrowUp') && direction !== 'down') direction = 'up';
+    else if ((keyname === 's' || keyname === 'ArrowDown') && direction !== 'up') direction = 'down';
+    else if ((keyname === 'a' || keyname === 'ArrowLeft') && direction !== 'right') direction = 'left';
+    else if ((keyname === 'd' || keyname === 'ArrowRight') && direction !== 'left') direction = 'right';
 })
 
-// food setting
-const foodPelets = [];
-const foodDuration = 5000; // 5 seconds, this for hard mode dissapear
-let foodTimer = 0; // timer for summon food
-
-// making food pellet
-function spawnFood() {
-    if (foodPelets.length < 5) {
-        const food = {
-            x: Math.floor(Math.random() * gridW),
-            y: Math.floor(Math.random() * gridH),
-            createdAt: Date.now()
-        }
-        foodPelets.push(food);
-    }
-}
-
-// drawing food on canvas
-function drawFood() {
-    foodPelets.forEach(food => {
-        ctx.fillStyle = '#88B0D5';
-        ctx.fillRect(food.x * gridCell, food.y * gridCell, gridCell, gridCell);
+function drawSnake() {
+    ctx.fillStyle = 'orange';
+    snake.forEach(body => {
+        ctx.fillRect(body.x * cellSize, body.y * cellSize, cellSize, cellSize)
     })
 }
 
-// check if snake is eating (snake collision dengan food)
-function checkFoodCollision() {
-    const head = snake.body[0];
+// food pellets
+let pellets = [];
+const minPellets = 3;
+const maxPellets = 5;
 
-    foodPelets.forEach((food, index) => {
-        if (head.x === food.x && head.y === food.y) {
-            // snake eat food more panjang tubuhnya
-            snake.body.push({ ...snake.body[snake.body.length - 1] });
-            foodPelets.splice(index, 1); // remove food that eaten by snake
-            // update score for now
-            console.log('Score: ' + snake.body.length); 
+function spawnPellet() {
+    if (pellets.length >= maxPellets) return;
+
+    let x;
+    let y;
+    let safe = false;
+
+    while (!safe) {
+        x = Math.floor(Math.random() * cols);
+        y = Math.floor(Math.random() * rows);
+
+        safe = !snake.some(body => body.x === x && body.y === y);
+    }
+
+    const newPellet = {
+        x, 
+        y,
+        createdAt: Date.now(),
+        expiresAt: Date.now() + 5000
+    }
+
+    pellets.push(newPellet);
+}
+
+function cleanPellets() {
+    const now = Date.now();
+    pellets = pellets.filter(p => now < p.expiresAt);
+}
+
+function makePellets() {
+    while (pellets.length < minPellets) {
+        spawnPellet();
+    }
+}
+
+function drawPellets() {
+    ctx.fillStyle = 'skyblue';
+    pellets.forEach(pellet => {
+        ctx.fillRect(pellet.x * cellSize, pellet.y * cellSize, cellSize, cellSize);
+    })
+}
+
+// collision functions
+function checkPelletCollision() {
+    const head = snake[0];
+
+    for (let i = 0; i < pellets.length; i++) {
+        if (pellets[i].x === head.x && pellets[i].y === head.y) {
+            pellets.splice(i, 1);
+            score += 1;
+            scoreText.innerHTML = score;
+            return true;
         }
+    }
+
+    return false;
+}
+
+function checkSnakeCollision() {
+    const head = snake[0];
+
+    for (let i = 1; i < snake.length; i++) {
+        if (snake[i].x === head.x && snake[i].y === head.y) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+// rewind functions
+const gameHistory = [];
+const maxHistoryDuration = 5;
+const framesPerSecond = 4;
+const maxHistoryLength = maxHistoryDuration * framesPerSecond;
+let isRewinding = false;
+
+function storeGameState() {
+    if (gameHistory.length >= maxHistoryLength) {
+        gameHistory.shift();
+    }
+
+    gameHistory.push({
+        snake: JSON.parse(JSON.stringify(snake)),
+        pellets: JSON.parse(JSON.stringify(pellets)),
+        direction,
+        score,
+        timer
     });
 }
 
-// update food logic (muncul setiap 3 detik, hilang setelah 5 detik di hardmode)
+function restoreGameState(indexFromEnd) {
+    const snapShot = gameHistory[gameHistory.length - indexFromEnd];
+    if (!snapShot) return;
 
-function updateFood(time) {
-    if (time - foodTimer > 3000) { // muncul tiap 3 detik food pelet
-        spawnFood();
-        foodTimer = time;
-    }
+    snake.length = 0;
+    snapShot.snake.forEach(segment => snake.push({ ...segment }));
 
-    if (hardMode.checked) { // checking if hard mode
-        foodPelets.forEach((food, index) => {
-            if (time - food.createdAt > foodDuration) { // delete food after 5 second
-                foodPelets.splice(index, 1);
-            }
-        })
-    }
+    pellets = snapShot.pellets.map(p => ({ ...p }));
+    direction = snapShot.direction;
+    score = snapShot.score;
+    timer = snapShot.timer;
 }
 
-// snake setting
-const snakeSpeed = 4; // 4 grid per second
-let lastTime = 0; // Store the last time the snake moved
-const snake = {
-    // starting point
-    body: [
-        { x: Math.floor(gridW / 2), y: Math.floor(gridH / 2) },
-        { x: Math.floor(gridW / 2), y: Math.floor(gridH / 2) + 1 },
-        { x: Math.floor(gridW / 2), y: Math.floor(gridH / 2) + 2 },
-        { x: Math.floor(gridW / 2), y: Math.floor(gridH / 2) + 3 },
-        { x: Math.floor(gridW / 2), y: Math.floor(gridH / 2) + 4 },
-        { x: Math.floor(gridW / 2), y: Math.floor(gridH / 2) + 5 },
-    ],
-    // move right default
-    direction: {
-        x: 1,
-        y: 0
-    }
+let preRewindSnapshot = null;
+
+function startRewind() {
+    if (gameHistory.length < 2) return;
+
+    pauseGame();
+    preRewindSnapshot = cloneGameState();
+
+    const availableSeconds = Math.floor(gameHistory.length / framesPerSecond);
+    rewindBar.max = availableSeconds;
+    rewindBar.value = availableSeconds;
+
+    afterGame.style.display = 'flex';
+    isRewinding = true;
+    rewindBtn.style.display = 'none';
+
+    // now
+    restoreGameState(1);
+    scoreText.textContent = score;
+    updateTimerDisplay();
 }
 
-// drawing the snake
-function drawSnake() {
-    snake.body.forEach((body, head) => {
-        ctx.fillStyle = head === 0 ? '#795627' : '#795627';
-        ctx.fillRect(body.x * gridCell, body.y * gridCell, gridCell, gridCell);
-    });
+function cloneGameState() {
+    return {
+        snake: JSON.parse(JSON.stringify(snake)),
+        pellets: JSON.parse(JSON.stringify(pellets)),
+        direction,
+        score,
+        timer
+    };
 }
 
+function applyGameState(snapshot) {
+    snake.length = 0;
+    snapshot.snake.forEach(segment => snake.push({ ...segment }));
 
-// moving snake
-function moveSnake() {
-    const head = {
-        ...snake.body[0]
-    }
-    head.x += snake.direction.x;
-    head.y += snake.direction.y;
+    pellets = snapshot.pellets.map(p => ({ ...p }));
+    direction = snapshot.direction;
+    score = snapshot.score;
+    timer = snapshot.timer;
 
-    // making sure snake no go away
-    if (head.x < 0) {
-        head.x = gridW - 1;
-    }
-    if (head.x >= gridW) {
-        head.x = 0;
-    }
-    if (head.y < 0) {
-        head.y = gridH - 1;
-    }
-    if (head.y >= gridH) {
-        head.y = 0;
-    }
-
-    snake.body.unshift(head);
-    snake.body.pop();
+    scoreText.textContent = score;
+    updateTimerDisplay();
 }
 
-// movement snake
+function renderSnapshot() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    createGrid();
+    drawPellets();
+    drawSnake();
+}
+
+// rewind event listeners
+
+rewindBtn.addEventListener('click', startRewind);
 document.addEventListener('keydown', (e) => {
-    //check the key presses
-    const keyPressed = e.key;
-    switch (keyPressed) {
-        case 'w':
-            if (snake.direction.y === 0) {
-                snake.direction = {
-                    x: 0,
-                    y: -1
-                }
-            }
-            break;
-        case 's':
-            if (snake.direction.y === 0) {
-                snake.direction = {
-                    x:0,
-                    y: 1
-                }
-            }
-            break;
-        case 'd':
-            if (snake.direction.x === 0) {
-                snake.direction = {
-                    x: 1,
-                    y: 0,
-                }
-            }
-            break;
-        case 'a':
-            if (snake.direction.x === 0) {
-                snake.direction = {
-                    x: -1,
-                    y: 0,
-                }
-            }
-            break;
+    if (e.key === ' ') {
+        startRewind();
+    }
+});
+
+rewindBar.addEventListener('input', () => {
+    const secondsBack = rewindBar.max - parseInt(rewindBar.value);
+    const framesAgo = secondsBack * framesPerSecond;
+
+    if (gameHistory.length >= framesAgo) {
+        restoreGameState(framesAgo);
+        scoreText.textContent = score;
+        updateTimerDisplay();
+        renderSnapshot();
     }
 })
 
+cancelRewind.addEventListener('click', () => {
+    if (preRewindSnapshot) {
+        applyGameState(preRewindSnapshot);
+    }
+    afterGame.style.display = 'none';
+    isRewinding = false;
+    rewindBtn.style.display = 'block';
+    resumeGame();
+})
 
+confirmRewind.addEventListener('click', () => {
+    const secondsAgo = parseInt(rewindBar.value);
+    const framesAgo = secondsAgo * 5;
 
-function gameLoop(tick) {
-    // time between fraems
-    const deltaTime = tick - lastTime;
-    const moveInterval = 100 / snakeSpeed; // how fast snake moving
+    restoreGameState(framesAgo);
 
-    if (deltaTime > moveInterval) {
-        // update and draw again after deltatime is finished
-        lastTime = tick;
-        moveSnake();
-        checkFoodCollision();
+    const newHistoryLength = gameHistory.length - framesAgo;
+    gameHistory.splice(newHistoryLength);
+
+    storeGameState();
+
+    afterGame.style.display = 'none';
+    isRewinding = false;
+    rewindBtn.style.display = 'block';
+    resumeGame();
+})
+
+// global game stuff
+
+let gamePaused = false;
+
+function pauseGame() {
+    gamePaused = true;
+    clearInterval(timerInterval);
+}
+
+function resumeGame() {
+    if (!gamePaused) return;
+    gamePaused = false;
+    gameLoop();
+    startTimer();
+}
+
+function gameLoop() {
+
+    if (gamePaused) return;
+    if (isRewinding) return;
+
+    storeGameState();
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    createGrid();
+    drawPellets();
+    moveSnake();
+    drawSnake();
+
+    cleanPellets();
+    makePellets();
+
+    if (checkSnakeCollision()) {
+        gameOver();
+        return;
     }
 
-    updateFood(tick);
-
-    ctx.clearRect(0, 0, myCanvas.width, myCanvas.height);
-    drawGrid();
-    drawSnake();
-    drawFood();
-    requestAnimationFrame(gameLoop);
+    setTimeout(gameLoop, 1000 / framesPerSecond);
 }
-
 
 function gameStart() {
-    console.log('Game Started!');
-    drawGrid();
     gameLoop();
+    setInterval(spawnPellet, 3000);
+    startTimer();
 }
 
+function gameOver() {
+    clearInterval(timerInterval);
+    
+    const highScore = parseInt(localStorage.getItem('snakeHighScore')) || 0;
+
+    if (score > highScore) {
+        localStorage.setItem('snakeHighScore', score);
+        alert(`Game Over! New Highscore: ${score}`);
+        location.reload();
+    } else {
+        alert(`Game Over! Score: ${score}\nHighScore: ${highScore}`);
+        location.reload();
+    }
+}

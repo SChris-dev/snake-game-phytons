@@ -3,40 +3,42 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Game Application</title>
-    <link rel="stylesheet" href="styles.css">
+    <title>Snake Game - Phytons</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <!-- Game container -->
-    <div class="game-container">
-
-        <!-- Menu -->
-        <div id="mainMenu" style="display: flex;">
-            <h1>PHYTONS</h1>
-            <div class="settings">
-                <input type="text" placeholder="Enter name" id="playerName">
-                <div style="display: flex; justify-content: center; gap: 10px;">
-                    <input type="checkbox" id="hardMode"><label> HARDMODE</label>
-                </div>
-            </div>
-            <button class="game-button" id="startBtn">Start Game</button>
-            <button class="game-button" id="leaderboardBtn">Leaderboard</button>
-        </div>
-
-        <!-- The Game -->
-         <div id="theGame" style="display: none;">
-            <div class="items">
-                <p>Score: <span id="playerScore">0</span></p>
-                <h2>PHYTONS</h2>
-                <p>Time: <span id="totalTime">0:00:00</span></p>
-            </div>
-            <canvas width="960" height="600" style="border: 1px solid #46A5E0;"></canvas>
-            <div class="canvas-button">
-                <button class="game-button" id="rewindBtn">Rewind</button>
-            </div>
-         </div>
+    
+    <div id="menuContainer">
+        <h1>PHYTONS</h1>
+        <ol>
+            <li>input username</li>
+            <li>play game and dont hit snake body</li>
+            <li>enjoy</li>
+        </ol>
+        <input type="text" id="usernameInput" placeholder="Enter Username">
+        <button id="startBtn">Play</button>
     </div>
 
+    <div id="gameContainer">
+        <div class="game-stats">
+            <p>Score: <span id="scoreText">6</span></p>
+            <h1>PHYTONS</h1>
+            <p>Time: <span id="timerText">0:00:00</span></p>
+        </div>
+        <canvas id="canvas"></canvas>
+        <div class="game-options">
+            <button id="rewindBtn">Rewind</button>
+            <div class="after-game-options" id="afterGame">
+                <input type="range" name="rewindBar" id="rewindBar">
+                <div class="merapikan">
+                    <button id="cancelRewind">Cancel</button>
+                    <button id="confirmRewind">Rewind</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="menu.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
